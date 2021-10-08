@@ -1,0 +1,26 @@
+[
+    {
+        "title": "Pushups under head",
+        "time": "45 srconds",
+        "thumbnail": "assets/pushups_under_head.png",
+        "videoUrl": "assets/Vector.png"
+    },
+    {
+        "title": "Gymnastics with dumbbells",
+        "time": "55 srconds",
+        "thumbnail": "assets/gymnastics_with_dumbbells.png",
+        "videoUrl": "assets/Vector.png"
+    },
+    {
+        "title": "Barbell pull to the belt",
+        "time": "45 srconds",
+        "thumbnail": "assets/barbell_pull_to_the_belt.png",
+        "videoUrl": "assets/Vector.png"
+    },
+    {
+        "title": "Rope exercises",
+        "time": "45 srconds",
+        "thumbnail": "assets/rope_exercises.png",
+        "videoUrl": "assets/Vector.png"
+    }
+]
