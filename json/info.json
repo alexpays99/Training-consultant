@@ -1,27 +1,18 @@
 [
     {
         "title": "Glues",
-        "img": "assets/Vector.png"
+        "img": "assets/ex1.png"
     },
     {
         "title": "Abs",
-        "img": "assets/card1.png"
+        "img": "assets/ex2.png"
     },
     {
         "title": "Legs",
-        "img": "assets/vecteezy_old-people.png"
+        "img": "assets/ex3.png"
     },
     {
         "title": "Arms",
-        "img": "assets/Vector.png"
-    }
-    ,
-    {
-        "title": "Legs",
-        "img": "assets/vecteezy_old-people.png"
-    },
-    {
-        "title": "Arms",
-        "img": "assets/Vector.png"
+        "img": "assets/ex4.png"
     }
 ]

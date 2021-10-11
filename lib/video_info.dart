@@ -11,13 +11,107 @@ class VideoInfo extends StatefulWidget {
 }
 
 class _VideoInfoState extends State<VideoInfo> {
-  List info = [];
+  List videoinfo = [];
 
-  //декодирует info.json и помещается в список info
-  _initData() {
-    DefaultAssetBundle.of(context).loadString("json/videoinfo.json").then((value) {
-      info = json.decode(value);
+  //декодирует videoinfo.json и помещается в список videoinfo
+  _initData() async {
+    await DefaultAssetBundle.of(context)
+        .loadString("json/videoinfo.json")
+        .then((value) {
+      videoinfo = json.decode(value);
     });
+  }
+
+  _listView(int index) {
+    return Container(
+      height: 135,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  image: DecorationImage(
+                    image: AssetImage(videoinfo[index]["thumbnail"]),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 10,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    videoinfo[index]["title"],
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      videoinfo[index]["time"],
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+          SizedBox(
+            height: 18,
+          ),
+          Row(
+            children: [
+              Container(
+                width: 80,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Color(0xFFeaeefc),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '15s rest',
+                    style: TextStyle(
+                      color: Color(0xFF839fed),
+                    ),
+                  ),
+                ),
+              ),
+              //реализация пунктирных линий
+              Row(
+                children: [
+                  for (int i = 0; i < 70; i++)
+                    i.isEven
+                        ? Container(
+                            width: 3,
+                            height: 1,
+                            decoration: BoxDecoration(
+                              color: Color(0xFF839fed),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          )
+                        : Container(
+                            width: 3,
+                            height: 1,
+                            color: Colors.white,
+                          )
+                ],
+              )
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -177,10 +271,14 @@ class _VideoInfoState extends State<VideoInfo> {
                         BorderRadius.only(topRight: Radius.circular(70))),
                 child: Column(
                   children: [
-                    SizedBox(height: 30,),
+                    SizedBox(
+                      height: 30,
+                    ),
                     Row(
                       children: [
-                        SizedBox(width: 30,),
+                        SizedBox(
+                          width: 30,
+                        ),
                         Text(
                           'Circuit 1 : Legs Toning',
                           style: TextStyle(
@@ -191,13 +289,44 @@ class _VideoInfoState extends State<VideoInfo> {
                         Expanded(child: Container()),
                         Row(
                           children: [
-                            Icon(Icons.loop, size: 20, color: color.AppColor.loopColor,),
-                            SizedBox(width: 10,),
-                            Text('3 sets', style: TextStyle(fontSize: 15, color: color.AppColor.setsColor),)
+                            Icon(
+                              Icons.loop,
+                              size: 20,
+                              color: color.AppColor.loopColor,
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Text(
+                              '3 sets',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: color.AppColor.setsColor),
+                            )
                           ],
                         ),
-                        SizedBox(width: 20,),
+                        SizedBox(
+                          width: 20,
+                        ),
                       ],
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 30, vertical: 8),
+                        itemCount: videoinfo.length,
+                        itemBuilder: (_, index) {
+                          return GestureDetector(
+                            onTap: () {
+                              debugPrint(index.toString());
+                            },
+                            child: _listView(index),
+                          );
+                        },
+                      ),
                     )
                   ],
                 ),

@@ -1,26 +1,27 @@
 [
     {
-        "title": "Pushups under head",
-        "time": "45 srconds",
-        "thumbnail": "assets/pushups_under_head.png",
-        "videoUrl": "assets/Vector.png"
+      "title": "Squat and Walk",
+      "time": "45 seconds",
+      "thumbnail": "assets/squat1.jpg",
+      "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"
     },
     {
-        "title": "Gymnastics with dumbbells",
-        "time": "55 srconds",
-        "thumbnail": "assets/gymnastics_with_dumbbells.png",
-        "videoUrl": "assets/Vector.png"
+      "title": "Plie Squat and Heel Raises",
+      "time": "55 seconds",
+      "thumbnail": "assets/squat2.jpg",
+      "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"
     },
     {
-        "title": "Barbell pull to the belt",
-        "time": "45 srconds",
-        "thumbnail": "assets/barbell_pull_to_the_belt.png",
-        "videoUrl": "assets/Vector.png"
+      "title": "Squat Kickback",
+      "time": "60 seconds",
+      "thumbnail": "assets/squat3.jpg",
+      "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"
     },
     {
-        "title": "Rope exercises",
-        "time": "45 srconds",
-        "thumbnail": "assets/rope_exercises.png",
-        "videoUrl": "assets/Vector.png"
+      "title": "Squat with Side Leg Lift",
+      "time": "120 seconds",
+      "thumbnail": "assets/squat4.jpg",
+      "videoUrl": "https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"
     }
-]
+  
+  ]
