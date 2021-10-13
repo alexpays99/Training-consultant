@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart' as color;
 
@@ -11,18 +11,150 @@ class VideoInfo extends StatefulWidget {
 }
 
 class _VideoInfoState extends State<VideoInfo> {
-  List videoinfo = [];
+  List videoinfo = []; // список видео
+  bool _playArea = false; // определяет является ли зона просмотра видео доступной.
+  bool _isPlaying = false;
+  VideoPlayerController? _controller; // глобальнай контроллер для видео
 
-  //декодирует videoinfo.json и помещается в список videoinfo
+  //декодирует videoinfo.json и помещается в список videoinfo.
   _initData() async {
     await DefaultAssetBundle.of(context)
         .loadString("json/videoinfo.json")
         .then((value) {
-      videoinfo = json.decode(value);
+      // когда билд уже загрузился, информация из json файла ещё не подгрузился.
+      //из-за этого после перезапуска информация из джейсона не появлялась, только после перерисовки экрана.
+      // чтобы информация из json подтягивалась после перезапуска, нужно поместить  videoinfo в setState.
+      // когда он помешён в  setState, и в нём есть информация, билд перерисовывает экран и на пустом месте уже появляются изображения.
+      setState(() {
+        videoinfo = json.decode(value);
+      });
     });
   }
 
-  _listView(int index) {
+  void _onControllerUpdate () async {
+    final controller = _controller;
+    if(controller == null) {
+      debugPrint("controller is null");
+      return;
+    }
+
+    if(!controller.value.isInitialized) {
+      debugPrint("controller can't be initialized");
+      return;
+    }
+
+    final playing = controller.value.isPlaying;
+    _isPlaying = playing;
+    
+  }
+
+  // инициализация видео
+  _initializeVideo(int index) {
+    final controller = VideoPlayerController.network(
+        videoinfo[index]["videoUrl"]); //локальный контроллер для видео
+    _controller = controller; //помещаем локальный контроллер в глобальный
+    setState(() {
+      // вызываеться чтобы перерисовать виджет и вызвать build виджета, ктогда локальный контроллер инициальзирован
+    });
+    _controller?..initialize().then((_) {
+        controller.addListener(_onControllerUpdate);
+        // инициализация видео
+        controller.play(); // локальный контроллер запускает видео.
+        setState(() {
+          //задаем состояние чтобы убедиться что перерисовка состоялась после запуска видео.
+        });
+      });
+  }
+
+  // при нажатии на видео происзодит инициализация видео
+  _onTapVideo(int index) {
+    _initializeVideo(index);
+  }
+
+  //возвращает список контейнеров с видео и названием видео
+  _listView() {
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 8),
+      itemCount: videoinfo.length,
+      itemBuilder: (_, index) {
+        return GestureDetector(
+          onTap: () {
+            _onTapVideo(index);
+            debugPrint(index.toString());
+            setState(() {
+              if (_playArea == false) {
+                _playArea = true;
+              }
+            });
+          },
+          child: _buildCar(index),
+        );
+      },
+    );
+  }
+
+  // запуск видео
+  Widget _playView(BuildContext context) {
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: VideoPlayer(controller),
+      );
+    } else {
+      return AspectRatio(
+        aspectRatio: 16 / 9, 
+        child: Center(
+          child: Text('Preparing...', style: TextStyle(fontSize: 20, color: Colors.white),)
+        )
+      );
+    }
+  }
+
+  Widget _controlView (BuildContext context) {
+    return Container(
+      height: 120,
+      width: MediaQuery.of(context).size.width,
+      color: color.AppColor.gradientSecond,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FlatButton(
+            onPressed: () async {
+
+            },
+            child: Icon(Icons.fast_rewind, size: 36, color: Colors.white,),
+          ),
+          FlatButton(
+            onPressed: () async {
+              if(_isPlaying) {
+                setState(() {
+                  _isPlaying = false;
+                });
+                _controller?.pause();
+              }
+              else {
+                setState(() {
+                  _isPlaying = true;
+                });
+                _controller?.play();
+              }
+            },
+            child: Icon(_isPlaying? Icons.pause: Icons.play_arrow, size: 36, color: Colors.white,),
+          ),
+          FlatButton(
+            onPressed: () async {
+              
+            },
+            child: Icon(Icons.fast_forward, size: 36, color: Colors.white,),
+          )
+        ],
+      ),
+    );
+  }
+
+  // возвращает контейнер с видео, и названием видео
+  _buildCar(int index) {
     return Container(
       height: 135,
       child: Column(
@@ -124,143 +256,184 @@ class _VideoInfoState extends State<VideoInfo> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [
-          color.AppColor.gradientFirst.withOpacity(0.9),
-          color.AppColor.gradientSecond,
-        ], begin: const FractionalOffset(0.0, 0.4), end: Alignment.topRight)),
+        decoration: _playArea == false
+            ? BoxDecoration(
+                gradient: LinearGradient(
+                    colors: [
+                    color.AppColor.gradientFirst.withOpacity(0.9),
+                    color.AppColor.gradientSecond,
+                  ],
+                    begin: const FractionalOffset(0.0, 0.4),
+                    end: Alignment.topRight))
+            : BoxDecoration(color: color.AppColor.gradientSecond),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.only(top: 70, left: 30, right: 30),
-              width: MediaQuery.of(context).size.width,
-              height: 300,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Icon(
-                          Icons.arrow_back_ios,
-                          size: 20,
-                          color: color.AppColor.secondPageIconColor,
-                        ),
-                      ),
-                      Expanded(child: Container()),
-                      Icon(
-                        Icons.info_outline,
-                        size: 20,
-                        color: color.AppColor.secondPageIconColor,
-                      )
-                    ],
-                  ),
-                  SizedBox(
-                    height: 30,
-                  ),
-                  Text(
-                    'Legs Toning',
-                    style: TextStyle(
-                        fontSize: 25,
-                        color: color.AppColor.secondPageTitleColor),
-                  ),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Text(
-                    'and Glutes Workout',
-                    style: TextStyle(
-                        fontSize: 25,
-                        color: color.AppColor.secondPageTitleColor),
-                  ),
-                  SizedBox(
-                    height: 50,
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 90,
-                        height: 30,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: LinearGradient(
-                                colors: [
-                                  color.AppColor
-                                      .secondPageContainerGradient1stColor
-                                      .withOpacity(0.4),
-                                  color.AppColor
-                                      .secondPageContainerGradient2ndColor
-                                      .withOpacity(0.4),
-                                ],
-                                begin: Alignment.bottomLeft,
-                                end: Alignment.topRight)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+            _playArea == false
+                ? Container(
+                    padding:
+                        const EdgeInsets.only(top: 70, left: 30, right: 30),
+                    width: MediaQuery.of(context).size.width,
+                    height: 300,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
+                            InkWell(
+                              onTap: () {
+                                Navigator.pop(context);
+                              },
+                              child: Icon(
+                                Icons.arrow_back_ios,
+                                size: 20,
+                                color: color.AppColor.secondPageIconColor,
+                              ),
+                            ),
+                            Expanded(child: Container()),
                             Icon(
-                              Icons.timer,
+                              Icons.info_outline,
                               size: 20,
                               color: color.AppColor.secondPageIconColor,
-                            ),
-                            SizedBox(
-                              width: 5,
-                            ),
-                            Text(
-                              '68 min',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: color.AppColor.secondPageIconColor),
                             )
                           ],
                         ),
-                      ),
-                      SizedBox(
-                        width: 20,
-                      ),
-                      Container(
-                        width: 240,
-                        height: 30,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: LinearGradient(
-                                colors: [
-                                  color.AppColor
-                                      .secondPageContainerGradient1stColor
-                                      .withOpacity(0.4),
-                                  color.AppColor
-                                      .secondPageContainerGradient2ndColor
-                                      .withOpacity(0.4),
-                                ],
-                                begin: Alignment.bottomLeft,
-                                end: Alignment.topRight)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        SizedBox(
+                          height: 30,
+                        ),
+                        Text(
+                          'Legs Toning',
+                          style: TextStyle(
+                              fontSize: 25,
+                              color: color.AppColor.secondPageTitleColor),
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Text(
+                          'and Glutes Workout',
+                          style: TextStyle(
+                              fontSize: 25,
+                              color: color.AppColor.secondPageTitleColor),
+                        ),
+                        SizedBox(
+                          height: 50,
+                        ),
+                        Row(
                           children: [
-                            Icon(
-                              Icons.handyman_outlined,
-                              size: 20,
-                              color: color.AppColor.secondPageIconColor,
+                            Container(
+                              width: 90,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: LinearGradient(
+                                      colors: [
+                                        color.AppColor
+                                            .secondPageContainerGradient1stColor
+                                            .withOpacity(0.4),
+                                        color.AppColor
+                                            .secondPageContainerGradient2ndColor
+                                            .withOpacity(0.4),
+                                      ],
+                                      begin: Alignment.bottomLeft,
+                                      end: Alignment.topRight)),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.timer,
+                                    size: 20,
+                                    color: color.AppColor.secondPageIconColor,
+                                  ),
+                                  SizedBox(
+                                    width: 5,
+                                  ),
+                                  Text(
+                                    '68 min',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        color:
+                                            color.AppColor.secondPageIconColor),
+                                  )
+                                ],
+                              ),
                             ),
                             SizedBox(
-                              width: 5,
+                              width: 20,
                             ),
-                            Text(
-                              'Resistena band, kettebell',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: color.AppColor.secondPageIconColor),
-                            )
+                            Container(
+                              width: 240,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: LinearGradient(
+                                      colors: [
+                                        color.AppColor
+                                            .secondPageContainerGradient1stColor
+                                            .withOpacity(0.4),
+                                        color.AppColor
+                                            .secondPageContainerGradient2ndColor
+                                            .withOpacity(0.4),
+                                      ],
+                                      begin: Alignment.bottomLeft,
+                                      end: Alignment.topRight)),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.handyman_outlined,
+                                    size: 20,
+                                    color: color.AppColor.secondPageIconColor,
+                                  ),
+                                  SizedBox(
+                                    width: 5,
+                                  ),
+                                  Text(
+                                    'Resistena band, kettebell',
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        color:
+                                            color.AppColor.secondPageIconColor),
+                                  )
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  )
+                : Container(
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 100,
+                          padding: const EdgeInsets.only(
+                              top: 50, left: 30, right: 30),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: () {
+                                  debugPrint("taooed");
+                                },
+                                child: Icon(Icons.arrow_back_ios,
+                                    size: 20,
+                                    color:
+                                        color.AppColor.secondPageTopIconColor),
+                              ),
+                              Expanded(child: Container()),
+                              Icon(
+                                Icons.info_outline,
+                                size: 20,
+                                color: color.AppColor.secondPageTopIconColor,
+                              )
+                            ],
+                          ),
+                        ),
+                        _playView(context),// отображает видео
+                        _controlView(context), // отображает панель контроля видео (пауза, дорожка и т д)
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
             Expanded(
               child: Container(
                 width: MediaQuery.of(context).size.width,
@@ -314,19 +487,7 @@ class _VideoInfoState extends State<VideoInfo> {
                       height: 20,
                     ),
                     Expanded(
-                      child: ListView.builder(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 30, vertical: 8),
-                        itemCount: videoinfo.length,
-                        itemBuilder: (_, index) {
-                          return GestureDetector(
-                            onTap: () {
-                              debugPrint(index.toString());
-                            },
-                            child: _listView(index),
-                          );
-                        },
-                      ),
+                      child: _listView(),
                     )
                   ],
                 ),
