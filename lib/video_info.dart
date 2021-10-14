@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart' as color;
@@ -14,6 +15,8 @@ class _VideoInfoState extends State<VideoInfo> {
   List videoinfo = []; // список видео
   bool _playArea = false; // определяет является ли зона просмотра видео доступной.
   bool _isPlaying = false;
+  bool _disposed = false;
+  int _isPlayingIndex = -1;
   VideoPlayerController? _controller; // глобальнай контроллер для видео
 
   //декодирует videoinfo.json и помещается в список videoinfo.
@@ -31,7 +34,21 @@ class _VideoInfoState extends State<VideoInfo> {
     });
   }
 
+  var _onUpdateControllerTime; // обновление времени контроллера
+
   void _onControllerUpdate () async {
+    if(_disposed){
+      return;
+    }
+
+    _onUpdateControllerTime = 0;
+    final now = DateTime.now().microsecondsSinceEpoch;
+    if(_onUpdateControllerTime > now) {
+      return;
+    }
+
+    _onUpdateControllerTime = now+500;
+
     final controller = _controller;
     if(controller == null) {
       debugPrint("controller is null");
@@ -50,13 +67,19 @@ class _VideoInfoState extends State<VideoInfo> {
 
   // инициализация видео
   _initializeVideo(int index) {
-    final controller = VideoPlayerController.network(
-        videoinfo[index]["videoUrl"]); //локальный контроллер для видео
+    final controller = VideoPlayerController.network(videoinfo[index]["videoUrl"]); //локальный контроллер для видео
+    final old = _controller; // контроллер из предыдущего видео
     _controller = controller; //помещаем локальный контроллер в глобальный
+    if(old != null) {
+      old.removeListener(_onControllerUpdate); // удаляем слушателя 
+      old.pause();
+    }
     setState(() {
       // вызываеться чтобы перерисовать виджет и вызвать build виджета, ктогда локальный контроллер инициальзирован
     });
     _controller?..initialize().then((_) {
+        old?.dispose(); // если старый контроллер существует, то он удаляется
+        _isPlayingIndex = index;
         controller.addListener(_onControllerUpdate);
         // инициализация видео
         controller.play(); // локальный контроллер запускает видео.
@@ -112,16 +135,63 @@ class _VideoInfoState extends State<VideoInfo> {
   }
 
   Widget _controlView (BuildContext context) {
+    final noMute = (_controller?.value?.volume??0 > 0); // если контроллер существует, оттуда извлекается значение -> если значение есть, оттуда получается звук -> если звук есть, мы получаем звук и если звука нет, мы получаем 0.
+
     return Container(
-      height: 120,
+      height: 40,
       width: MediaQuery.of(context).size.width,
+      margin: const EdgeInsets.only(bottom: 5),
       color: color.AppColor.gradientSecond,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          InkWell(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      offset: Offset(0.0, 0.0),
+                      blurRadius: 4.0,
+                      color: Color.fromARGB(50, 0, 0, 0),
+                    )
+                  ]
+                ),
+                child: Icon(Icons.volume_up, color: Colors.white,),
+              ),
+            ),
+            onTap: () {
+              if(noMute == true) {
+                _controller?.setVolume(0);
+              }
+              else {
+                _controller?.setVolume(1);
+              }
+              setState(() {
+                
+              });
+            },
+          ),
           FlatButton(
-            onPressed: () async {
-
+            onPressed: () async { //при нажатии воспроизводится предыдущее видео
+              final index = _isPlayingIndex - 1; // индекс предыдущего видео
+              if(index >= 0 && videoinfo.length >= 0)  // потому что первое видео всегда 0 и не может быть -1
+              {
+                _initializeVideo(index);
+              }
+              else{
+                Get.snackbar( 
+                  "Video", "",
+                  snackPosition: SnackPosition.BOTTOM,
+                  icon: Icon(Icons.face, size: 30, color: Colors.white),
+                  backgroundColor: color.AppColor.gradientSecond,
+                  colorText: Colors.white,
+                  messageText: Text("No videos ahead", style: TextStyle(fontSize: 20, color: Colors.white),)
+                );
+              }
             },
             child: Icon(Icons.fast_rewind, size: 36, color: Colors.white,),
           ),
@@ -144,7 +214,22 @@ class _VideoInfoState extends State<VideoInfo> {
           ),
           FlatButton(
             onPressed: () async {
-              
+              final index = _isPlayingIndex + 1; // индекс следующего видео
+              if(index <= videoinfo.length - 1) 
+              {
+                _initializeVideo(index);
+              }
+              else{
+                Get.snackbar( 
+                  "Video", "",
+                  snackPosition: SnackPosition.BOTTOM,
+                  icon: Icon(Icons.face, size: 30, color: Colors.white),
+                  backgroundColor: color.AppColor.gradientSecond,
+                  colorText: Colors.white,
+                  messageText: Text("You have fnished watching all the videos. Congrats!", style: TextStyle(fontSize: 20, color: Colors.white),)
+                );
+                
+              }
             },
             child: Icon(Icons.fast_forward, size: 36, color: Colors.white,),
           )
@@ -250,6 +335,15 @@ class _VideoInfoState extends State<VideoInfo> {
   void initState() {
     super.initState();
     _initData();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _controller?.pause(); // поставить видео на паузу
+    _controller?.dispose(); // очистить, если контроллер существует
+    _controller = null; // ставим null и убеждаемся что контроллер был удален
+    super.dispose();
   }
 
   @override
@@ -413,7 +507,7 @@ class _VideoInfoState extends State<VideoInfo> {
                             children: [
                               InkWell(
                                 onTap: () {
-                                  debugPrint("taooed");
+                                  Navigator.pop(context);
                                 },
                                 child: Icon(Icons.arrow_back_ios,
                                     size: 20,
